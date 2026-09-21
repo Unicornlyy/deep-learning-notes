@@ -502,7 +502,7 @@ Adam 的优点是训练通常比较稳定，对学习率相对不那么敏感，
 
 
 ## 习题：4.1~4.5 优化算法综合练习
-> 覆盖知识点：梯度下降、Mini-batch SGD、Momentum、Nesterov、Adagrad、RMSProp、Adam
+> 覆盖知识点：梯度下降、Mini-batch SGD、Momentum、Nesterov、Adagrad、RMSProp、Adam.
 
 ### 基础理解题【单选题】
 1. 下面关于 Mini‑batch SGD 的叙述正确的是（）
