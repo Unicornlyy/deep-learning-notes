@@ -499,3 +499,64 @@ $$
 $$
 
 Adam 的优点是训练通常比较稳定，对学习率相对不那么敏感，也能适应不同参数梯度尺度差异较大的情况。但它需要额外维护一阶和二阶状态，也不一定在所有任务上都比 SGD 有更好的泛化表现。当然更重要的是，Adam 和 weight decay 的结合方式存在问题。下一节我们会看到，AdamW 通过解耦 weight decay 和梯度更新，让 Adam 更适合现代深度学习模型的训练。
+
+
+## 习题：4.1~4.5 优化算法综合练习
+> 覆盖知识点：梯度下降、Mini-batch SGD、Momentum、Nesterov、Adagrad、RMSProp、Adam
+
+### 基础理解题【单选题】
+1. 下面关于 Mini‑batch SGD 的叙述正确的是（）
+A. Mini‑batch SGD 使用全部训练集样本计算梯度，梯度估计最稳定
+B. 训练集 DataLoader 设置 `shuffle=True`，目的是让每个 mini‑batch 近似全集随机采样
+C. 验证集 DataLoader 也必须开启 `shuffle=True`，保证评估结果可靠
+D. Mini‑batch SGD 的梯度噪声一定大于单样本原始SGD
+
+### 原理分析题【单选题】
+2. 关于各类优化器内在机制，下列说法正确的是（）
+A. Adagrad 使用指数滑动平均累积梯度平方，不会出现训练后期学习率趋近于0
+B. Momentum 属于无状态优化器，保存模型仅需保存模型权重参数
+C. Adam 同时维护一阶动量（梯度EMA）与二阶动量（梯度平方EMA），训练初期需要偏差修正抵消初始0值带来的估计偏差
+D. Nesterov Momentum 可以为每个参数提供独立自适应学习率
+
+### 原理分析题【填空题】
+3. 在基础SGD中，weight‑decay会让权重每一步向______靠拢；在实践中，我们一般不会对________施加weight decay。
+
+### 开发讨论题【开放问答，无需手写代码】
+4. Adam 相比原始SGD+Momentum有什么优势？在什么场景下SGD-Momentum反而效果优于Adam？Adam本身还有哪些可以改进的方向？
+
+---
+
+## 参考答案与解析
+1. **答案：B**
+解析：
+- A错误：全量样本是Batch Gradient Descent；Mini-batch只用部分样本。
+- B正确：打乱训练集，保证每个batch是随机子集，避免批次分布带来偏差。
+- C错误：验证集不需要shuffle，打乱顺序不会提升指标，只会增加额外开销。
+- D错误：单样本SGD噪声 > mini-batch SGD，batch越大梯度噪声越小。
+
+2. **答案：C**
+解析：
+- A错误：Adagrad是全部历史梯度平方累加，不是EMA，后期学习率趋近0；RMSProp才使用EMA。
+- B错误：Momentum维护momentum_buffer，属于**有状态优化器**，checkpoint需要保存优化器状态。
+- C正确：Adam一阶、二阶动量初始化为0，迭代早期估计有偏，需要bias-correction偏差修正。
+- D错误：Nesterov Momentum仍然是全局学习率，没有逐参数自适应学习率。
+
+3. **答案：0；偏置bias（LayerNorm缩放平移参数也可）**
+解析：weight decay本质是权重衰减，每一步将权重向0约束；工程上一般只对卷积层、线性层权重做weight decay，bias、LayerNorm参数通常不施加衰减。
+
+4. **参考答案要点**
+> ✅ Adam对比SGD-Momentum优势
+> 1. 同时具备一阶动量平滑梯度（抑制SGD震荡）；
+> 2. 二阶动量实现**逐参数自适应学习率**，不同参数拥有独立更新步长；
+> 3. 自带偏差修正，训练前期更新更稳定，开箱即用，调参门槛更低。
+>
+> ✅ SGD-Momentum效果更好的场景
+> 很多计算机视觉任务（图像分类、检测），Adam自适应学习率会提前降低学习率，泛化能力弱；SGD-Momentum手动精细调学习率策略，往往能得到更高测试集精度。
+>
+> ✅ Adam可改进方向
+> 1. AdamW：修正weight decay实现方式，区分L2正则和权重衰减；
+> 2. Adam存在二阶动量持续累积，后期学习率持续下降；可以搭配学习率调度器；
+> 3. 可以调整$\beta_2$，降低久远梯度的影响；
+> 4. 针对Adam的泛化缺陷，衍生AdamP、Lookahead等改进算法。
+>
+> 💡评分思路：答出2点优势+1个SGD优于Adam场景+1个改进方向即可拿到满分。
