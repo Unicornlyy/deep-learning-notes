@@ -114,7 +114,11 @@ $$
 - InstanceNorm 保留 $(N, C)$、只统计 $(H, W)$：统计集合最小，逐样本逐通道统计均值和方差；
 - GroupNorm 保留 $(N, G)$、统计组内的 $\left(\frac{C}{G}, H, W\right)$：介于 LayerNorm 与 InstanceNorm 之间。
 
-由于只有 BatchNorm 的统计维度包含 $N$，因此它的归一化依赖 batch 并需要维护 running statistics。训练时用 batch 统计量，推理时改用训练期间累积的移动平均。InstanceNorm 比较特殊，在 `track_running_stats=True` 时也会维护 running statistics。其余方法每个样本独立归一化，`train()` 与 `eval()` 的统计规则完全相同。
+由于只有 BatchNorm 的统计维度包含 $N$，因此其归一化统计量依赖当前 batch。默认情况下，BatchNorm 还会维护 running statistics。训练时使用当前 batch 的均值和方差，并更新它们的移动平均；评估时则使用训练期间累积的 running mean 和 running variance。
+
+InstanceNorm 的统计量本身不跨样本计算，但在设置 `track_running_stats=True` 时也会额外维护 running statistics，因此 `train()` 和 `eval()` 行为同样会有所不同。
+
+除此之外，其余归一化方法通常都在单个样本内部计算统计量，因此训练和评估阶段的行为相同。
 
 4\. <span style="color: #1565C0;">**答案：A**</span>
 
