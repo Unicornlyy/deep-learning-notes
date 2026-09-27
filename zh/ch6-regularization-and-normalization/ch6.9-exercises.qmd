@@ -48,7 +48,7 @@ for epoch in range(num_epochs):
     model.train()
     for X, y in train_dl:
         optimizer.zero_grad()
-        loss = criterion(model(X), y)
+        loss = loss_fn(model(X), y)
         loss.backward()
         optimizer.step()
 
@@ -59,7 +59,7 @@ for epoch in range(num_epochs):
             correct += (pred.argmax(dim=1) == y).sum().item()
 
     val_acc = correct / len(val_dl.dataset)
-    print(f'Epoch {epoch} | val_acc: {acc:.4f}')
+    print(f'Epoch {epoch} | val_acc: {val_acc:.4f}')
 ```
 
 他发现验证精度明显低于预期，且每次运行波动很大。请回答：
@@ -114,7 +114,7 @@ $$
 - InstanceNorm 保留 $(N, C)$、只统计 $(H, W)$：统计集合最小，逐样本逐通道统计均值和方差；
 - GroupNorm 保留 $(N, G)$、统计组内的 $\left(\frac{C}{G}, H, W\right)$：介于 LayerNorm 与 InstanceNorm 之间。
 
-由于只有 BatchNorm 的统计维度包含 $N$，也只有它依赖 batch 并需要维护 running statistics。训练时用 batch 统计量，推理时改用训练期间累积的移动平均。其余方法每个样本独立归一化，`train()` 与 `eval()` 的统计规则完全相同。
+由于只有 BatchNorm 的统计维度包含 $N$，因此它的归一化依赖 batch 并需要维护 running statistics。训练时用 batch 统计量，推理时改用训练期间累积的移动平均。InstanceNorm 比较特殊，在 `track_running_stats=True` 时也会维护 running statistics。其余方法每个样本独立归一化，`train()` 与 `eval()` 的统计规则完全相同。
 
 4\. <span style="color: #1565C0;">**答案：A**</span>
 
@@ -140,7 +140,7 @@ with torch.no_grad():
         correct += (pred.argmax(dim=1) == y).sum().item()
 ```
 
-\(b\) 由于没有切换到 `eval()`，Dropout 在验证时仍处于训练模式，每次前向都会随机失活一部分神经元并放大保留的激活。这带来两个后果：同一个样本的预测结果每次都不同；大量特征被随机丢弃，验证精度被**系统性低估**。注意，`torch.no_grad()` / `torch.inference_mode()` 并不能阻止这一切。
+\(b\) 由于没有切换到 `eval()`，Dropout 在验证时仍处于训练模式，每次前向都会随机失活一部分神经元并放大保留的激活。这带来两个后果：同一个样本的预测结果每次都不同；大量特征被随机丢弃，验证精度会产生较大波动。需要注意，`torch.no_grad()` / `torch.inference_mode()` 并不能阻止这一切。
 
 \(c\) BatchNorm 在训练模式下使用**当前 mini-batch** 的均值和方差。验证 batch 通常远小于训练 batch，统计量的噪声很大，导致验证输出随 batch 波动、指标不稳定。同时，即使被 `no_grad()` 包裹，BatchNorm 在前向时仍会按 momentum 更新自己的 running statistics，验证数据会污染训练期间累积的统计量，把评估所用的统计量拉向验证集的分布。
 
